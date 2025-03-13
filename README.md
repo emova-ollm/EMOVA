@@ -86,8 +86,8 @@ This repo contains the full implementation of our EMOVA models. The key highligh
 
 ## 🚀 News
 
-- **[2025-03-1x]** 🔥 We support the latest **DeepSeekMoE LLMs**!
-- **[2025-03-1x]** 🔥 We have released EMOVA's **code** (training & inference), **datasets** (training & evaluation), and **checkpoints** (EMOVA-3B/7B/72B)!
+- **[2025-03-14]** 🔥 We support the latest **DeepSeekMoE LLMs**!
+- **[2025-03-14]** 🔥 We have released EMOVA's **code** (training & inference), **datasets** (training & evaluation), and **checkpoints** (EMOVA-3B/7B/72B)!
 - **[2025-02-27]** Our [EMOVA paper](https://arxiv.org/abs/2409.18042) has been accepted by CVPR 2025!
 
 
@@ -95,14 +95,6 @@ This repo contains the full implementation of our EMOVA models. The key highligh
 ## TODO
 
 - [ ] Integrate EMOVA into official `transformers` and `lmms-eval` repositories
-
----
-
-- Huggingface
-  - 上传所需要的pretrained model & README
-  - 上传Origin Format模型
-  - EMOVA-Alignment-7M readme - test.md
-- 加微信群二维码
 
 
 ## Performance
@@ -184,12 +176,12 @@ Clone this repo and create the EMOVA virtual environment with conda. Our code ha
 
 | Model Name | Vision Encoder | LLM          | Context Length | 🤗 HF Format | Origin Format | Config                                                       |
 | :--------: | :------------: | :----------: | :------------: | :---------:   | :----------: | :----------------------------------------------------------: |
-| EMOVA-3B   | [Qwen2ViT-600M](https://huggingface.co/Emova-ollm/qwen2vit600m) | [Qwen-2.5-3B](https://huggingface.co/Qwen/Qwen2.5-3B-Instruct) | 8192           |      [[link]](https://huggingface.co/Emova-ollm/emova-qwen-2-5-3b-hf)         |       [[link]](https://huggingface.co/Emova-ollm/emova-qwen-2-5-3b)       | [[link]](./configs/example/emova/qwen2_5_qwen2vit_nativeAnyres_3b/2.finetune.py) |
-| EMOVA-7B   |  [Qwen2ViT-600M](https://huggingface.co/Emova-ollm/qwen2vit600m)  | [Qwen-2.5-7B](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct) | 8192           |      [[link]](https://huggingface.co/Emova-ollm/emova-qwen-2-5-7b-hf)         |      [[link]](https://huggingface.co/Emova-ollm/emova-qwen-2-5-7b)        | [[link]](./configs/example/emova/qwen2_5_qwen2vit_nativeAnyres_7b/2.finetune.py) |
-| EMOVA-72B  | [Qwen2ViT-600M](https://huggingface.co/Emova-ollm/qwen2vit600m)   | [Qwen-2.5-72B](https://huggingface.co/Qwen/Qwen2.5-72B-Instruct) | 8192           |       [[link]](https://huggingface.co/Emova-ollm/emova-qwen-2-5-72b-hf)        |      [[link]](https://huggingface.co/Emova-ollm/emova-qwen-2-5-72b)        | [[link]](./configs/example/emova/qwen2_5_qwen2vit_nativeAnyres_72b/2.finetune.py) |
+| EMOVA-3B   | [Qwen2ViT-600M](https://huggingface.co/Emova-ollm/qwen2vit600m) | [Qwen-2.5-3B-Instruct](https://huggingface.co/Qwen/Qwen2.5-3B-Instruct) | 8192           |      [[link]](https://huggingface.co/Emova-ollm/emova-qwen-2-5-3b-hf)         |       [[link]](https://huggingface.co/Emova-ollm/emova-qwen-2-5-3b)       | [[link]](./configs/example/emova/qwen2_5_qwen2vit_nativeAnyres_3b/2.finetune.py) |
+| EMOVA-7B   |  [Qwen2ViT-600M](https://huggingface.co/Emova-ollm/qwen2vit600m)  | [Qwen-2.5-7B-Instruct](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct) | 8192           |      [[link]](https://huggingface.co/Emova-ollm/emova-qwen-2-5-7b-hf)         |      [[link]](https://huggingface.co/Emova-ollm/emova-qwen-2-5-7b)        | [[link]](./configs/example/emova/qwen2_5_qwen2vit_nativeAnyres_7b/2.finetune.py) |
+| EMOVA-72B  | [Qwen2ViT-600M](https://huggingface.co/Emova-ollm/qwen2vit600m)   | [Qwen-2.5-72B-Instruct](https://huggingface.co/Qwen/Qwen2.5-72B-Instruct) | 8192           |       [[link]](https://huggingface.co/Emova-ollm/emova-qwen-2-5-72b-hf)        |      [[link]](https://huggingface.co/Emova-ollm/emova-qwen-2-5-72b)        | [[link]](./configs/example/emova/qwen2_5_qwen2vit_nativeAnyres_72b/2.finetune.py) |
 
 - **🤗 HF Format** and **Origin Format** checkpoints share the same parameters but are organized in different formats.
-- **🤗 HF Format** checkpoints should be loaded by the HuggingFace [transformers Auto Classes](https://huggingface.co/docs/transformers/model_doc/auto) APIs, which are used in the [simple inference example](#🤗-simple-inference-example-with-huggingface) below.
+- **🤗 HF Format** checkpoints should be loaded by the HuggingFace [transformers Auto Classes](https://huggingface.co/docs/transformers/model_doc/auto) APIs, which are used in the [simple inference example](#-simple-inference-example-with-huggingface) below.
 - **Origin Format** checkpoints should be loaded by our `emova codebase in this repo`, which are used in the [gradio web demo](#gradio-web-demo) and [Evaluation](#evaluation) sections. Note that each **Origin Format** checkpoint is paired with the **config** file in the same row.
 
 
@@ -373,7 +365,7 @@ The example configs to replicate a EMOVA-7B model with Ascend NPUs (e.g., 910B3)
 
 To fine-tune pre-trained EMOVA model on custom datasets, we need to:
 
-1. Organize custom data in the desired JSON format and create a new dataset config (e.g., configs/_base_/datasets/custom_dataset.py). Detailed instructions are provided [here](./assets/docs/Data.md#custom-datasets).
+1. Organize custom data in the desired JSON format and create a new dataset config (e.g., configs/_base_/datasets/ custom_dataset.py). Detailed instructions are provided [here](./assets/docs/Data.md#custom-datasets).
 
 2. Prepare the fine-tuning task configs. An example to fine-tune a pre-trained [EMOVA-7B](https://huggingface.co/Emova-ollm/emova-qwen-2-5-7b) is provided [here](./configs/example/finetune/qwen2_5_qwen2vit_nativeAnyres_7b).
 
