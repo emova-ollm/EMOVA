@@ -1,0 +1,26 @@
+training_args = dict(
+    log_level='info',
+    cache_dir=None,
+    optim="adamw_torch",
+    remove_unused_columns=False,
+    freeze_mm_mlp_adapter=False,
+    mpt_attn_impl="triton",
+    model_max_length=512,  # "Maximum sequence length. Sequences will be right padded (and possibly truncated)."
+    double_quant=True,  # "Compress the quantization statistics through double quantization."
+    quant_type="nf4",  # "Quantization data type to use. Should be one of `fp4` or `nf4`."
+    bits=16,  # "How many bits to use."
+    lora_enable=False,
+    lora_r=64,
+    lora_alpha=16,
+    lora_dropout=0.05,
+    lora_weight_path="",
+    lora_bias="none",
+    mm_projector_lr=None,
+    mm_vision_tower_lr=None,
+    group_by_modality_length=False,
+    save_total_limit=1,
+    disable_tqdm=True,
+    enable_torch_profile=False,
+    assess_train_time=False,
+    seed=42,
+)
