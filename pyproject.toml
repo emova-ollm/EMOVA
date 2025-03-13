@@ -7,7 +7,7 @@ name = "emova"
 version = "1.0.0"
 description = "Empowering Language Models to See, Hear and Speak with Vivid Emotions"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: Apache Software License",
@@ -15,13 +15,12 @@ classifiers = [
 dependencies = [
     # install torch first
     "torch==2.4.0", "torchvision==0.19.0", "deepspeed==0.14.4",
-    "transformers==4.44.2", "tokenizers",
+    "transformers==4.47.1", "tokenizers",
     "attrdict",
     "sentencepiece==0.1.99",  #SentencePiece==0.1.96
     "shortuuid",
     "accelerate==0.33.0", "peft==0.4.0", "bitsandbytes",
     "pydantic==1.10.13", "markdown2[all]", "numpy", "scikit-learn==1.2.2",
-    "gradio==3.48.0", "gradio_client==0.6.1",
     "requests", "httpx==0.24.0", "uvicorn", "fastapi",
     "einops==0.6.1", "einops-exts==0.0.4",
     "timm==0.9.12", "tensorboardX", "tiktoken",
@@ -35,6 +34,7 @@ npu = [
 ]
 train = ["ninja", "wandb"]
 build = ["build", "twine"]
+gradio = ["gradio==4.44.0", "pydantic==2.9.2"]
 speech = [
     "pandas", "monotonic_align", 
     "librosa==0.8.0", "phonemizer", 

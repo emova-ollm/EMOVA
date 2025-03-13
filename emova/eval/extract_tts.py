@@ -5,7 +5,7 @@ from datasets import load_dataset
 
 def extract(args):
     result =  [json.loads(q) for q in open(args.result_path, "r", encoding='utf-8')]
-    annotation = load_dataset("emova-asr-tts-eval/librispeech-asr-tts/")['test']
+    annotation = load_dataset("Emova-ollm/emova-asr-tts-eval/", "librispeech-asr-tts")['test']
 
     id2ann = {}
     for item in annotation:

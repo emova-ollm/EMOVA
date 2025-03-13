@@ -73,7 +73,7 @@ def extract(args):
     }
 
     result =  [json.loads(q) for q in open(args.result_path, "r")]
-    ann = load_dataset("Emova-ollm/emova-sft-speech-eval", args.data_subset, token="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")['test']
+    ann = load_dataset("Emova-ollm/emova-sft-speech-eval", args.data_subset)['test']
     
     rst_dict = {}
     ann_dict = {}

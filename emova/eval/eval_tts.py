@@ -7,7 +7,7 @@ import shutil
 import sys
 import os
 
-from emova_speech_tokenizer.speech_utils import  get_U2S_config_checkpoint_file, load_U2S_model, synthesis
+from transformers import AutoModel
 
 from whisper_asr.whisper_asr import load_whisper_model, EN_ASR_WER
 from whisper_asr.paraformer_zh_asr import load_paraformer_zh_model, CH_ASR_CER
@@ -40,9 +40,8 @@ def get_text_unit_list(data_file, sample_num='all'):
 
 
 def evaluate(args):
-    U2S_config_file, U2S_checkpoint_file = get_U2S_config_checkpoint_file('40ms_multilingual_8888_xujing_cosyvoice_FT', 'Chinese')
-    net_g, hps = load_U2S_model(U2S_config_file, U2S_checkpoint_file, '40ms_multilingual_8888_xujing_cosyvoice_FT')
-    net_g = net_g.cuda()
+    speech_tokenizer = AutoModel.from_pretrained("Emova-ollm/emova_speech_tokenizer_hf", torch_dtype=torch.float32, trust_remote_code=True).eval()
+    speech_tokenizer = speech_tokenizer.cuda()
 
     
     if args.eval_zh:
@@ -62,7 +61,7 @@ def evaluate(args):
     for i, (text, unit) in enumerate(zip(text_list, unit_seq_list)):
         content_unit = unit.replace('<|speech_', '').replace('|>', ' ').strip()
         output_wav_file = f'{args.result_dir}/{i}.wav'
-        synthesis(content_unit, None, hps, net_g, output_wav_file)
+        speech_tokenizer.decode(content_unit, condition=None, output_wav_file=output_wav_file)
         wav_list.append(output_wav_file)
 
     batch_size = 12

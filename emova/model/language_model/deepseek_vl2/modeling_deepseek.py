@@ -1813,7 +1813,7 @@ class DeepseekV2ForCausalLM(DeepseekV2PreTrainedModel):
         cache_position = torch.arange(past_length, past_length + position_ids.shape[-1], device=position_ids.device)
 
         # if `inputs_embeds` are passed, we only want to use them in the 1st generation step
-        if inputs_embeds is not None and past_key_values is None:
+        if inputs_embeds is not None and (past_key_values is None or len(past_key_values)==0): # support newer transformer version
             model_inputs = {"inputs_embeds": inputs_embeds}
         else:
             # The `contiguous()` here is necessary to have a static stride during decoding. torchdynamo otherwise

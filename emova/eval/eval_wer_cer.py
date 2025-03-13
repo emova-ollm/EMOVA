@@ -54,7 +54,7 @@ def form_ann_rst_list(ann, results, key):
 
 def evaluate(args):
     results = [json.loads(q) for q in open(os.path.expanduser(args.result_path), "r")]
-    ann = load_dataset("emova-asr-tts-eval/librispeech-asr-tts/")['test']
+    ann = load_dataset("Emova-ollm/emova-asr-tts-eval/", "librispeech-asr-tts")['test']
 
     if args.language == 'en':
         ann_dict_en, rst_dict_en = form_ann_rst_list(ann, results, 'asr')

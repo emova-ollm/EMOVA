@@ -16,7 +16,7 @@ model_args = dict(
     ),
     mm_vision_tower=dict(
         type='InternVisionTower',
-        pretrained_model_name_or_path='OpenGVLab/InternViT-6B-448px-V1-5',
+        pretrained_model_name_or_path='OpenGVLab/InternViT-300M-448px',
         mm_vision_select_layer=-1,
         mm_vision_select_feature='patch',
     ),

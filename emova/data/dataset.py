@@ -116,7 +116,11 @@ class LazySupervisedDataset(Dataset):
                 image = process_anyres_image(  # torch.Size([5, 3, 336, 336])
                     image, processor, self.data_args.image_grid_pinpoints)
             elif self.data_args.image_aspect_ratio == "native_anyres":
-                inputs = processor(images=[image], return_tensors="pt")
+                try:
+                    inputs = processor(images=[image], return_tensors="pt")
+                except Exception as e:
+                    print(e, sources)
+                    return self.__getitem__(random.randint(0, len(self) - 1))
                 image = inputs['pixel_values']  # [ grid_H * grid_W, channel(1176) ]
                 image_size = inputs['image_grid_thw'][0]  # [ 1, grid_H, grid_W ]
             else:

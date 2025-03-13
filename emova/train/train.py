@@ -192,6 +192,10 @@ def train():
             use_fast=False,
             trust_remote_code=True,
         )
+    elif 'deepseek' in pretrained_model_name_or_path.lower():
+        vl_chat_processor = DeepseekVLV2Processor.from_pretrained(pretrained_model_name_or_path)
+        tokenizer = vl_chat_processor.tokenizer
+        tokenizer.model_max_length = training_args.model_max_length
     elif 'qwen' in pretrained_model_name_or_path.lower():
         tokenizer = transformers.AutoTokenizer.from_pretrained(
             pretrained_model_name_or_path,
@@ -200,9 +204,6 @@ def train():
             padding_side="left",
             use_fast=True,
         )
-    elif 'deepseek' in pretrained_model_name_or_path.lower():
-        vl_chat_processor = DeepseekVLV2Processor.from_pretrained(pretrained_model_name_or_path)
-        tokenizer = vl_chat_processor.tokenizer
     else:
         tokenizer = transformers.AutoTokenizer.from_pretrained(
             pretrained_model_name_or_path,

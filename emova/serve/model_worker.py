@@ -18,7 +18,7 @@ from functools import partial
 
 from emova.constants import WORKER_HEART_BEAT_INTERVAL
 from emova.utils import (build_logger, server_error_msg,
-                         pretty_print_semaphore)
+                         read_config, pretty_print_semaphore)
 from emova.model.builder import load_pretrained_model
 from emova.mm_utils import process_images, load_image_from_base64, tokenizer_image_token
 from emova.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
@@ -26,6 +26,14 @@ from transformers import TextIteratorStreamer
 from threading import Thread
 
 from emova.mm_utils import get_model_name_from_path
+
+try:
+    import torch_npu
+    from torch_npu.npu import amp
+    from torch_npu.contrib import transfer_to_npu
+    print('Successful import torch_npu')
+except Exception as e:
+    print(e)
 
 GB = 1 << 30
 
@@ -35,6 +43,48 @@ global_counter = 0
 
 model_semaphore = None
 
+class SpeechTextIteratorStreamer(TextIteratorStreamer):
+    """
+    Support streaming for speech tokens
+    """
+    def put(self, value):
+        """
+        Receives tokens, decodes them, and prints them to stdout as soon as they form entire words.
+        """
+        if len(value.shape) > 1 and value.shape[0] > 1:
+            raise ValueError("TextStreamer only supports batch size 1")
+        elif len(value.shape) > 1:
+            value = value[0]
+
+        if self.skip_prompt and self.next_tokens_are_prompt:
+            self.next_tokens_are_prompt = False
+            return
+
+        # Add the new token to the cache and decodes the entire thing.
+        self.token_cache.extend(value.tolist())
+        text = self.tokenizer.decode(self.token_cache, **self.decode_kwargs)
+
+        # After the symbol for a new line, we flush the cache.
+        if text.endswith("\n"):
+            printable_text = text[self.print_len :]
+            self.token_cache = []
+            self.print_len = 0
+        # If the last token is a CJK character, we print the characters.
+        elif len(text) > 0 and self._is_chinese_char(ord(text[-1])):
+            printable_text = text[self.print_len :]
+            self.print_len += len(printable_text)
+        # If generate speech tokens
+        elif text.endswith("|>"):
+            printable_text = text[self.print_len :]
+            self.print_len += len(printable_text)
+        # Otherwise, prints until the last space char (simple heuristic to avoid printing incomplete words,
+        # which may change with the subsequent token -- there are probably smarter ways to do this!)
+        else:
+            printable_text = text[self.print_len : text.rfind(" ") + 1]
+            self.print_len += len(printable_text)
+
+        self.on_finalized_text(printable_text)
+
 
 def heart_beat_worker(controller):
     while True:
@@ -42,31 +92,18 @@ def heart_beat_worker(controller):
         controller.send_heart_beat()
 
 
-def read_mmcv_config(file):
-    # solve config loading conflict when multi-processes
-    import time
-    import mmcv
-    while True:
-        config = mmcv.Config.fromfile(file)
-        if len(config) == 0:
-            time.sleep(0.1)
-            continue
-        break
-    return config
-
-
 class ModelWorker:
     def __init__(self, controller_addr, worker_addr,
                  worker_id, no_register,
                  model_path, model_base, model_name,
                  load_8bit, load_4bit, device, use_flash_attn=False,
-                 mmcv_config=None):
+                 config=None):
         self.controller_addr = controller_addr
         self.worker_addr = worker_addr
         self.worker_id = worker_id
 
         self.device = device
-        if mmcv_config is None:
+        if config is None:
             if model_path.endswith("/"):
                 model_path = model_path[:-1]
             if model_name is None:
@@ -82,18 +119,18 @@ class ModelWorker:
                 model_path, model_base, self.model_name, load_8bit, load_4bit, device=self.device,
                 use_flash_attn=use_flash_attn)
         else:
-            mmcv_config = read_mmcv_config(mmcv_config)
+            config = read_config(config)
 
             model_base = None
-            model_path = mmcv_config.training_args.output_dir
+            model_path = config.training_args.output_dir if model_path is None else model_path
             model_path = os.path.expanduser(model_path)
             self.model_name = get_model_name_from_path(model_path)
 
-            self._mmcv_config = mmcv_config
-            if mmcv_config.training_args.get('lora_enable', False):
-                model_base = mmcv_config.model_args.language_model.pretrained_model_name_or_path
+            self._config = config
+            if config.training_args.get('lora_enable', False):
+                model_base = config.model_args.language_model.pretrained_model_name_or_path
             self.tokenizer, self.model, self.image_processor, self.context_len = load_pretrained_model(
-                model_path, model_base, self.model_name, device=self.device, mmcv_config=mmcv_config,
+                model_path, model_base, self.model_name, device=self.device, config=config,
                 use_flash_attn=use_flash_attn)
 
         logger.info(f"Loading the model {self.model_name} on worker {worker_id} ...")
@@ -168,7 +205,7 @@ class ModelWorker:
 
                 images = [load_image_from_base64(image) for image in images]
                 image_sizes = [image.size for image in images]
-                images = process_images(images, image_processor, model.config)
+                images, image_sizes = process_images(images, image_processor, model.config)
 
                 if type(images) is list:
                     images = [image.to(self.model.device, dtype=torch.float16) for image in images]
@@ -180,7 +217,10 @@ class ModelWorker:
                     replace_token = DEFAULT_IM_START_TOKEN + replace_token + DEFAULT_IM_END_TOKEN
                 prompt = prompt.replace(DEFAULT_IMAGE_TOKEN, replace_token)
 
-                num_image_tokens = prompt.count(replace_token) * model.get_vision_tower().num_patches
+                try:
+                    num_image_tokens = prompt.count(replace_token) * model.get_vision_tower().num_patches
+                except:
+                    num_image_tokens = 1024
             else:
                 images = None
                 image_sizes = None
@@ -192,7 +232,7 @@ class ModelWorker:
         temperature = float(params.get("temperature", 1.0))
         top_p = float(params.get("top_p", 1.0))
         max_context_length = getattr(model.config, 'max_position_embeddings', 2048)
-        max_new_tokens = min(int(params.get("max_new_tokens", 256)), 1024)
+        max_new_tokens = int(params.get("max_new_tokens", 256))
         stop_str = params.get("stop", None)
         # stop_str=None
         do_sample = True if temperature > 0.001 else False
@@ -201,7 +241,9 @@ class ModelWorker:
             self.device)
         keywords = [stop_str]
         # stopping_criteria = KeywordsStoppingCriteria(keywords, tokenizer, input_ids)
-        streamer = TextIteratorStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True, timeout=15)
+        # streamer = TextIteratorStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True, timeout=15)
+        # streamer = TextIteratorStreamer(tokenizer, skip_prompt=True, skip_special_tokens=False, timeout=15) # skip special tokens
+        streamer = SpeechTextIteratorStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True, timeout=15)
 
         max_new_tokens = min(max_new_tokens, max_context_length - input_ids.shape[-1] - num_image_tokens)
 
@@ -225,8 +267,9 @@ class ModelWorker:
         generated_text = ori_prompt
         for new_text in streamer:
             generated_text += new_text
-            if generated_text.endswith(stop_str):
-                generated_text = generated_text[:-len(stop_str)]
+            # output stop_str
+            # if generated_text.endswith(stop_str):
+            #     generated_text = generated_text[:-len(stop_str)]
             yield json.dumps({"text": generated_text, "error_code": 0}).encode() + b"\0"
 
     def generate_stream_gate(self, params):
@@ -294,7 +337,7 @@ if __name__ == "__main__":
                         default="http://localhost:21002")
     parser.add_argument("--controller-address", type=str,
                         default="http://localhost:21001")
-    parser.add_argument("--model-path", type=str, default="facebook/opt-350m")
+    parser.add_argument("--model-path", type=str, default=None)
     parser.add_argument("--model-base", type=str, default=None)
     parser.add_argument("--model-name", type=str)
     parser.add_argument("--device", type=str, default="cuda")
@@ -306,7 +349,7 @@ if __name__ == "__main__":
     parser.add_argument("--load-8bit", action="store_true")
     parser.add_argument("--load-4bit", action="store_true")
     parser.add_argument("--use-flash-attn", action="store_true")
-    parser.add_argument("--mmcv_config", type=str, default=None)
+    parser.add_argument("--config", type=str, default=None)
     args = parser.parse_args()
     logger.info(f"args: {args}")
 
@@ -325,5 +368,5 @@ if __name__ == "__main__":
                          args.load_4bit,
                          args.device,
                          use_flash_attn=args.use_flash_attn,
-                         mmcv_config=args.mmcv_config)
+                         config=args.config)
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")

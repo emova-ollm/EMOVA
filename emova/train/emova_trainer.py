@@ -302,12 +302,12 @@ class EMOVATrainer(Trainer):
         return self.optimizer
 
     def _save_checkpoint(self, model, trial, metrics=None):
-        super(EMOVATrainer, self)._save_checkpoint(model, trial, metrics)
+        super(EMOVATrainer, self)._save_checkpoint(model, trial)
 
     def _save(self, output_dir: Optional[str] = None, state_dict=None):
         super(EMOVATrainer, self)._save(output_dir, state_dict)
 
-    def training_step(self, model: nn.Module, inputs: Dict[str, Union[torch.Tensor, Any]]) -> torch.Tensor:
+    def training_step(self, model: nn.Module, inputs: Dict[str, Union[torch.Tensor, Any]], num_items_in_batch=None) -> torch.Tensor:
         model.train()
         inputs = self._prepare_inputs(inputs)
 
@@ -332,7 +332,7 @@ class EMOVATrainer(Trainer):
 
         return loss.detach() / self.args.gradient_accumulation_steps
 
-    def _maybe_log_save_evaluate(self, tr_loss, grad_norm, model, trial, epoch, ignore_keys_for_eval):
+    def _maybe_log_save_evaluate(self, tr_loss, grad_norm, model, trial, epoch, ignore_keys_for_eval, start_time):
         if self.control.should_log and self.state.global_step > self._globalstep_last_logged:
             if is_torch_xla_available():
                 xm.mark_step()

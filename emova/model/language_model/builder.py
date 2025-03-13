@@ -22,7 +22,7 @@ def get_cls_from_type(obj_type, registry):
         obj_cls = registry.get(obj_type)
         if obj_cls is None:
             raise KeyError(
-                f'{obj_type} is not in the {registry.name} registry')
+                f'{obj_type} is not in the {registry.module_names} registry')
     elif inspect.isclass(obj_type) or inspect.isfunction(obj_type):
         obj_cls = obj_type
     else:

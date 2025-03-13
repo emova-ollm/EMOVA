@@ -22,7 +22,7 @@ model_args = dict(
 )
 
 training_args = dict(
-    output_dir="./logdir/emova-qwen2_5-7b-qwen2vit600m_4096vokens-pretrain-npu/",
+    output_dir="./logdir/emova-qwen2_5-7b-qwen2vit600m-pretrain-npu/",
     deepspeed="./scripts/zero2.json",
     clean_cache_checkpoint=True,
     bf16=True,

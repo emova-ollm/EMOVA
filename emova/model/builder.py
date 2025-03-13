@@ -18,6 +18,7 @@ import warnings
 import shutil
 
 from transformers import AutoTokenizer, AutoModelForCausalLM, AutoConfig, BitsAndBytesConfig
+from transformers.utils import is_torch_npu_available
 import torch
 from emova.model import *
 from emova.constants import DEFAULT_IMAGE_PATCH_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
@@ -54,13 +55,13 @@ def load_pretrained_model(
         kwargs['torch_dtype'] = torch_dtype
 
     if use_flash_attn:
-        kwargs['attn_implementation'] = 'flash_attention_2'
+        kwargs['attn_implementation'] = 'flash_attention_2' if not is_torch_npu_available() else 'sdpa'
 
     if 'emova' in model_name.lower():
         # Load EMOVA model
         if 'lora' in model_name.lower() and model_base is None:
             warnings.warn(
-                'There is `lora` in model name but no `model_base` is provided. If you are loading a LoRA model, please provide the `model_base` argument. Detailed instruction: https://github.com/haotian-liu/EMOVA#launch-a-model-worker-lora-weights-unmerged.')
+                'There is `lora` in model name but no `model_base` is provided. If you are loading a LoRA model, please provide the `model_base` argument.')
         if 'lora' in model_name.lower() and model_base is not None:
             from emova.model.language_model.emova_llama import EmovaConfig
             lora_cfg_pretrained = EmovaConfig.from_pretrained(model_path)
@@ -157,7 +158,7 @@ def load_pretrained_model(
                 tokenizer_args = dict(use_fast=False)
             elif 'mistral' in model_name.lower():
                 tokenizer_args = dict()
-            elif 'qwen2' in model_name.lower():
+            elif 'qwen2' in model_name.lower() or 'qwen-2' in model_name.lower():
                 tokenizer_args = dict(padding_side="right",
                                       use_fast=True,)
             else:
@@ -193,7 +194,7 @@ def load_pretrained_model(
                 model_from_pretrained_args.update(trust_remote_code=True)
             elif 'mistral' in model_name.lower():
                 tokenizer_args = dict()
-            elif 'qwen2' in model_name.lower():
+            elif 'qwen2' in model_name.lower() or 'qwen-2' in model_name.lower():
                 tokenizer_args = dict(padding_side="right",
                                       use_fast=True, )
             else:

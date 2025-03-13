@@ -9,7 +9,7 @@ import shortuuid
 from emova.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
 from emova.conversation import conv_templates, SeparatorStyle
 from emova.model.builder import load_pretrained_model
-from emova.utils import disable_torch_init
+from emova.utils import disable_torch_init, read_config
 from emova.mm_utils import tokenizer_image_token, process_images, get_model_name_from_path
 
 from datasets import load_dataset
@@ -25,18 +25,6 @@ try:
     print('Successful import torch_npu')
 except Exception as e:
     print(e)
-
-def read_mmcv_config(file):
-    # solve config loading conflict when multi-processes
-    import time
-    import mmcv
-    while True:
-        config = mmcv.Config.fromfile(file)
-        if len(config) == 0:
-            time.sleep(0.1)
-            continue
-        break
-    return config
 
 
 def collate_fn(batches, tokenizer):
@@ -110,7 +98,7 @@ if __name__ == '__main__':
     parser.add_argument('--data-subset', type=str, default='datasetname')
     parser.add_argument('--num-workers', type=int, default=1)
     parser.add_argument('--model-path', type=str, default='/path/to/model')
-    parser.add_argument('--config', type=str, default='/path/to/mmcv/config')
+    parser.add_argument('--config', type=str, default='/path/to/config')
     parser.add_argument("--answers-file", type=str, default="answer.jsonl")
     parser.add_argument("--conv-mode", type=str, default="llama3")
     parser.add_argument('--model_base', type=str, default=None)
@@ -135,9 +123,9 @@ if __name__ == '__main__':
 
     model_name = get_model_name_from_path(args.model_path)
 
-    mmcv_config = read_mmcv_config(args.config)
+    config = read_config(args.config)
     tokenizer, model, image_processor, context_len = load_pretrained_model(
-        args.model_path, args.model_base, model_name, device=device, mmcv_config=mmcv_config
+        args.model_path, args.model_base, model_name, device=device, config=config
     )
 
     dataset = SpeechDataset(data_subset=args.data_subset, tokenizer=tokenizer, conv_mode=args.conv_mode)

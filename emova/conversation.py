@@ -5,6 +5,8 @@ import base64
 from io import BytesIO
 from PIL import Image
 
+import base64
+tts_format = "Please synthesize the speech corresponding to the follwing text.\n"
 
 class SeparatorStyle(Enum):
     """Different separator style."""
@@ -253,6 +255,103 @@ class Conversation:
         }
 
 
+@dataclasses.dataclass
+class Conversation_demo(Conversation):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+    
+    def get_prompt(self):
+        """
+        To make code clear, we only support LLaMA3, Qwen 2.5 and DeepSeekMoE series of LLMs.
+        The other LLMs can be simply supported by comparing **Conversation_demo.get_prompt()** and **Conversation.get_prompt()**
+        """
+        messages = self.messages
+        if len(messages) > 0 and type(messages[0][1]) is tuple and messages[0][1][1] is not None:
+            messages = self.messages.copy()
+            init_role, init_msg = messages[0].copy()
+            init_msg = init_msg[0].replace("<image>", "").strip()
+            if 'mmtag' in self.version:
+                messages[0] = (init_role, init_msg)
+                messages.insert(0, (self.roles[0], "<Image><image></Image>"))
+                messages.insert(1, (self.roles[1], "Received."))
+            else:
+                messages[0] = (init_role, "<image>\n" + init_msg)
+
+        if self.sep_style == SeparatorStyle.TWO:
+            seps = [self.sep, self.sep2]
+            ret = self.system + seps[0]
+            for i, (role, message) in enumerate(messages):
+                if message:
+                    if type(message) is tuple:
+                        message, _, _ = message[:3]
+                    ret += role + ": " + message + seps[i % 2]
+                else:
+                    ret += role + ":"
+        elif self.sep_style == SeparatorStyle.MPT:
+            ret = self.system + self.sep
+            for role, message in messages:
+                if message:
+                    if type(message) is tuple:
+                        message, _, _ = message[:3]
+                    ret += role + message + self.sep
+                else:
+                    ret += role
+        else:
+            raise ValueError(f"Invalid style: {self.sep_style}")
+
+        return ret
+    
+    def get_images(self, return_pil=False):
+        images = []
+        for i, (role, msg) in enumerate(self.messages[self.offset:]):
+            if i % 2 == 0:
+                if type(msg) is tuple and msg[1] is not None:
+                    msg, image, image_process_mode = msg[:3]
+                    image = self.process_image(image, image_process_mode, return_pil=return_pil)
+                    images.append(image)
+        return images
+    
+    def to_gradio_chatbot_public(self):
+        ret = []
+        for i, (role, msg) in enumerate(self.messages[self.offset:]):
+            if i % 2 == 0:
+                if type(msg) is tuple:
+                    msg, image, image_process_mode, audio_input = msg
+                    ret_msg = ""
+                    if image is not None:
+                        img_b64_str = self.process_image(
+                            image, "Default", return_pil=False,
+                            image_format='JPEG')
+                        img_str = f'<img src="data:image/jpeg;base64,{img_b64_str}" alt="user upload image" />'
+                        ret_msg += img_str
+                    if audio_input is not None:
+                        audio_b64_str = base64.b64encode(open(audio_input, "rb").read()).decode("utf-8")
+                        audio_str = f'<audio src="data:audio/wav;base64,{audio_b64_str}" controls ></audio>'
+                        ret_msg += audio_str
+                    else:
+                        ret_msg += msg.replace('<image>', '').replace(tts_format, '').strip()
+                    ret.append([ret_msg, None])
+                else:
+                    ret.append([msg, None])
+            else:
+                if type(msg) is tuple:
+                    audio_b64_str = base64.b64encode(open(msg[1], "rb").read()).decode("utf-8")
+                    msg = f'<audio src="data:audio/wav;base64,{audio_b64_str}" controls autoplay></audio>'
+                ret[-1][-1] = msg
+        return ret
+    
+    def copy(self):
+        return Conversation_demo(
+            system=self.system,
+            roles=self.roles,
+            messages=[[x, y] for x, y in self.messages],
+            offset=self.offset,
+            sep_style=self.sep_style,
+            sep=self.sep,
+            sep2=self.sep2,
+            version=self.version)
+
+
 conv_vicuna_v0 = Conversation(
     system="A chat between a curious human and an artificial intelligence assistant. "
            "The assistant gives helpful, detailed, and polite answers to the human's questions.",
@@ -405,25 +504,39 @@ conv_deepseek = Conversation(
     # stop_str=["User:", "<｜end▁of▁sentence｜>"]
 )
 
-conv_deepseekv2 = Conversation(
-    system="A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user\'s questions.",
-    roles=("<|User|>", "<|Assistant|>"),
-    version="deepseekv2",
+################
+# For web demo
+################
+conv_vicuna_v1_demo = Conversation_demo(
+    system="A chat between a curious user and an artificial intelligence assistant. "
+           "The assistant gives helpful, detailed, and polite answers to the user's questions.",
+    roles=("USER", "ASSISTANT"),
+    version="v1_demo",
     messages=(),
     offset=0,
-    sep_style=SeparatorStyle.DeepSeekV2,
-    sep="\n<｜sft▁end｜>",
-    sep2="<｜end▁of▁sentence｜>",
-    # stop_token_ids=[100001],
-    # stop_str=["User:", "<｜end▁of▁sentence｜>"]
+    sep_style=SeparatorStyle.TWO,
+    sep=" ",
+    sep2="</s>",
+)
+
+conv_qwen2_demo = Conversation_demo(
+    system='<|im_start|>system\nYou are a helpful assistant. Your name is emova, and you are purely developed by the emova Team.',
+    roles=("<|im_start|>user\n", "<|im_start|>assistant\n"),
+    version="qwen2_demo",
+    messages=(),
+    offset=0,
+    sep_style=SeparatorStyle.MPT,
+    sep="<|im_end|>\n",
 )
 
 default_conversation = conv_vicuna_v1
+default_conversation_demo = conv_vicuna_v1_demo
 conv_templates = {
     "default": conv_vicuna_v0,
     "v0": conv_vicuna_v0,
     "v1": conv_vicuna_v1,
     "vicuna_v1": conv_vicuna_v1,
+    "vicuna_v1_demo": conv_vicuna_v1_demo,
     "llama_2": conv_llama_2,
     "mistral_instruct": conv_mistral_instruct,
     "chatml_direct": conv_chatml_direct,
@@ -435,11 +548,11 @@ conv_templates = {
 
     "llama3": conv_llama3,
     "qwen2": conv_qwen2,
+    "qwen2_demo": conv_qwen2_demo,
     "glm4": conv_glm4,
     "phi3": conv_phi3,
 
     "deepseek": conv_deepseek,
-    "deepseekv2": conv_deepseekv2,
 
 }
 

@@ -10,7 +10,7 @@ data_args = dict(
 
 model_args = dict(
     version="qwen2",
-    pretrain_mm_mlp_adapter="./logdir/emova-qwen2_5-7b-qwen2vit600m_4096vokens-pretrain-npu/mm_projector.bin",
+    pretrain_mm_mlp_adapter="./logdir/emova-qwen2_5-7b-qwen2vit600m-pretrain-npu/mm_projector.bin",
 
     language_model=dict(trainable=True, attn_implementation="sdpa",
                         pretrained_model_name_or_path='Emova-ollm/Qwen2.5-7B-Instruct_add_speech_token_4096_nostrip',
@@ -25,7 +25,7 @@ model_args = dict(
 )
 
 training_args = dict(
-    output_dir="./logdir/emova-qwen2_5-7b-qwen2vit600m_4096vokens-alignment-npu/",
+    output_dir="./logdir/emova-qwen2_5-7b-qwen2vit600m-alignment-npu/",
     deepspeed="./scripts/zero3.json",
     save_on_each_node=True,
     bf16=True,

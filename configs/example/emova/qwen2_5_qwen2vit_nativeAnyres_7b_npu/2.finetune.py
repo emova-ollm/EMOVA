@@ -13,7 +13,7 @@ model_args = dict(
 
     language_model=dict(trainable=True,
                         attn_implementation="sdpa",
-                        pretrained_model_name_or_path="./logdir/emova-qwen2_5-7b-qwen2vit600m_4096vokens-alignment-npu/",
+                        pretrained_model_name_or_path="./logdir/emova-qwen2_5-7b-qwen2vit600m-alignment-npu/",
                         ),
     mm_vision_tower=dict(
         max_pixels=4096 * 28 * 28,
@@ -23,7 +23,7 @@ model_args = dict(
 )
 
 training_args = dict(
-    output_dir="./logdir/emova-qwen2_5-7b-qwen2vit600m_4096vokens-finetune-npu/",
+    output_dir="./logdir/emova-qwen2_5-7b-qwen2vit600m-finetune-npu/",
     deepspeed="./scripts/zero3.json",
     bf16=True,
     tf32=False,

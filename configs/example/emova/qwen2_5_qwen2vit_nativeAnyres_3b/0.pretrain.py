@@ -17,7 +17,6 @@ model_args = dict(
         trainable=False,
     ),
     mm_vision_tower=dict(
-        pretrained_model_name_or_path="Emova-ollm/qwen2vit600m/",
         max_pixels=4096 * 28 * 28,
         trainable=False,
     ),

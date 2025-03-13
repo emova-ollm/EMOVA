@@ -1,4 +1,3 @@
-from attrdict import AttrDict
 from dataclasses import dataclass
 import logging
 import gc
@@ -23,7 +22,7 @@ from transformers import (
 )
 from transformers.utils import logging
 
-from .siglip_vit import VisionTransformer
+# from .siglip_vit import VisionTransformer # we do not use vit in this file
 from .configuration_deepseek import DeepseekV2Config
 from .modeling_deepseek import DeepseekV2ForCausalLM
 
@@ -284,21 +283,22 @@ class DeepseekVLV2ForCausalLM(DeepseekVLV2PreTrainedModel):
 
         # ----------- vision encoder ------------
         vision_config = config.vision_config
-        self.vision = VisionTransformer(
-            img_size=vision_config.image_size,
-            patch_size=vision_config.patch_size,
-            embed_dim=vision_config.width,
-            depth=vision_config.layers,
-            num_heads=vision_config.heads,
-            mlp_ratio=vision_config.mlp_ratio,
-            class_token=vision_config.class_token,
-            global_pool=vision_config.global_pool,
-            ignore_head=vision_config.ignore_head,
-            weight_init=vision_config.weight_init,
-            num_classes=0,
-            deterministic=vision_config.deterministic,
-            num_recomputing_layers=vision_config.num_recomputing_layers
-        )
+        self.vision = None
+        # self.vision = VisionTransformer(
+        #     img_size=vision_config.image_size,
+        #     patch_size=vision_config.patch_size,
+        #     embed_dim=vision_config.width,
+        #     depth=vision_config.layers,
+        #     num_heads=vision_config.heads,
+        #     mlp_ratio=vision_config.mlp_ratio,
+        #     class_token=vision_config.class_token,
+        #     global_pool=vision_config.global_pool,
+        #     ignore_head=vision_config.ignore_head,
+        #     weight_init=vision_config.weight_init,
+        #     num_classes=0,
+        #     deterministic=vision_config.deterministic,
+        #     num_recomputing_layers=vision_config.num_recomputing_layers
+        # )
 
         # ----------- vl projector ------------
         projector_config = config.projector_config

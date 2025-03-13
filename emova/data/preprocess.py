@@ -120,7 +120,10 @@ def preprocess_llama_2(
         for j, sentence in enumerate(source):
             role = roles[sentence["from"]]
             assert role == conv.roles[j % 2], f"{i}"
-            conv.append_message(role, sentence["value"])
+            if sentence['from'] == 'gpt' and 're_encode' in sentence:
+                conv.append_message(role, sentence["value"].encode('utf-8').decode('unicode_escape'))
+            else:
+                conv.append_message(role, sentence["value"])
         conversations.append(conv.get_prompt())
 
     # Tokenize conversations
@@ -293,7 +296,10 @@ def preprocess_mpt(
         for j, sentence in enumerate(source):
             role = roles[sentence["from"]]
             assert role == conv.roles[j % 2], f"{i}"
-            conv.append_message(role, sentence["value"])
+            if sentence['from'] == 'gpt' and 're_encode' in sentence:
+                conv.append_message(role, sentence["value"].encode('utf-8').decode('unicode_escape'))
+            else:
+                conv.append_message(role, sentence["value"])
         conversations.append(conv.get_prompt())
 
     # Tokenize conversations
@@ -572,7 +578,10 @@ def preprocess_glm4(
         for j, sentence in enumerate(source):
             role = roles[sentence["from"]]
             assert role == conv.roles[j % 2], f"{i}"
-            conv.append_message(role, sentence["value"])
+            if sentence['from'] == 'gpt' and 're_encode' in sentence:
+                conv.append_message(role, sentence["value"].encode('utf-8').decode('unicode_escape'))
+            else:
+                conv.append_message(role, sentence["value"])
         conversations.append(conv.get_prompt())
 
     # Tokenize conversations
