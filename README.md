@@ -280,9 +280,10 @@ To launch a Gradio web demo locally, we follow the [Controller-UI Server-Model W
    python -m emova.serve.gradio_web_server --controller http://localhost:10000 --model-list-mode reload
    ```
 
-3. Launch a model worker. Since the model workers are independent with the Gradio process, we can launch multiple model workers as long as they have different `ports` numbers but the same `controller` address. 
-   > [!NOTE]  
-   > Here we should use the `Origin Format` checkpoints in [Model Zoo](#model-zoo).
+3. Launch a model worker. Since the model workers are independent with the Gradio process, we can launch multiple model workers as long as they have different `ports` numbers but the same `controller` address.
+
+ > [!NOTE]  
+ > Here we should use the `Origin Format` checkpoints in [Model Zoo](#model-zoo).
 
 
    ```bash
